@@ -38,6 +38,9 @@ function registerPokiHelperIpc() {
   ipcMain.handle('poki-helper:ocr-image-base64', (_e, base64Image, options) =>
     helper.recognizeTextFromImageBase64(base64Image, options ?? {}),
   );
+  ipcMain.handle('poki-helper:get-screen-pixel-color-hex', (_e, dipX, dipY) =>
+    helper.getScreenPixelColorHex(dipX, dipY),
+  );
   ipcMain.handle('poki-helper:wait-next-click-coordinates', (_e, opts) =>
     coordinatePickOverlay.startPick(opts ?? {}),
   );

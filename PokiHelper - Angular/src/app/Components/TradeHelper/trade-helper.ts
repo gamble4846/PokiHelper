@@ -24,6 +24,12 @@ export class TradeHelper {
   SRCBASE64: string = "";
   PrintedText: string = "";
 
+  /** Example: DIP point for {@link ReadPixelColorHexAtPickedPoint} after {@link PickColorSamplePoint}. */
+  ColorSamplePoint: ClickCoordinatesResult | null = null;
+  PixelColorHex = '';
+  PixelColorError = '';
+  pixelColorBusy = false;
+
   async GetCords() {
     const pos = await this.electronHelper.waitForNextClickCoordinates({
       timeoutMs: 60_000,
@@ -68,6 +74,54 @@ export class TradeHelper {
   async GetText(){
     const text = await this.electronHelper.recognizeTextFromImageBase64(this.SRCBASE64);
     this.PrintedText = text;
+  }
+
+  /** Pick a DIP screen point (overlay), then call {@link ReadPixelColorHexAtPickedPoint}. */
+  async PickColorSamplePoint(): Promise<void> {
+    this.PixelColorHex = '';
+    this.PixelColorError = '';
+    const pos = await this.electronHelper.waitForNextClickCoordinates({
+      timeoutMs: 60_000,
+      button: 'left',
+    });
+    this.ColorSamplePoint = pos;
+  }
+
+  /** Calls `getScreenPixelColorHex` for {@link ColorSamplePoint}. */
+  async ReadPixelColorHexAtPickedPoint(): Promise<void> {
+    const p = this.ColorSamplePoint;
+    if (!p) {
+      return;
+    }
+    this.pixelColorBusy = true;
+    this.PixelColorError = '';
+    this.PixelColorHex = '';
+    try {
+      this.PixelColorHex = await this.electronHelper.getScreenPixelColorHex(p.x, p.y);
+    } catch (e: unknown) {
+      this.PixelColorError = e instanceof Error ? e.message : String(e);
+    } finally {
+      this.pixelColorBusy = false;
+    }
+  }
+
+  /** Optional: sample hex at the same coordinates as {@link ToClickCords} from GetCords. */
+  async ReadPixelColorHexAtGetCordsPoint(): Promise<void> {
+    const p = this.ToClickCords;
+    if (!p) {
+      this.PixelColorError = 'Use GetCords first to capture a point.';
+      return;
+    }
+    this.pixelColorBusy = true;
+    this.PixelColorError = '';
+    this.PixelColorHex = '';
+    try {
+      this.PixelColorHex = await this.electronHelper.getScreenPixelColorHex(p.x, p.y);
+    } catch (e: unknown) {
+      this.PixelColorError = e instanceof Error ? e.message : String(e);
+    } finally {
+      this.pixelColorBusy = false;
+    }
   }
 }
 

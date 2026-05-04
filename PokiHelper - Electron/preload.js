@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld('pokiHelper', {
     ),
   recognizeTextFromImageBase64: (base64Image, options) =>
     ipcRenderer.invoke('poki-helper:ocr-image-base64', base64Image, options ?? {}),
+  getScreenPixelColorHex: (dipX, dipY) =>
+    ipcRenderer.invoke('poki-helper:get-screen-pixel-color-hex', dipX, dipY),
   waitForNextClickCoordinates: (opts) =>
     ipcRenderer.invoke('poki-helper:wait-next-click-coordinates', opts ?? {}),
   cancelWaitForNextClickCoordinates: () =>

@@ -79,6 +79,10 @@ export interface PokiHelperPreload {
     options?: OcrImageBase64Options,
   ): Promise<string>;
   /**
+   * Samples the pixel at DIP screen `(x, y)` (same space as `waitForNextClickCoordinates`). Returns `#rrggbb`.
+   */
+  getScreenPixelColorHex(dipX: number, dipY: number): Promise<string>;
+  /**
    * Shows a full-screen dim overlay (all monitors), crosshair (+) cursor, and resolves with `screenX` / `screenY`
    * on the first matching click. Esc cancels. Only one wait may be active at a time.
    */

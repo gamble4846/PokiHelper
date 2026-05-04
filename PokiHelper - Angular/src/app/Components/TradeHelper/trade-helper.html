@@ -15,3 +15,33 @@
 }
 
 <pre>{{PrintedText}}</pre>
+
+<hr />
+<h3>Example: screen pixel → hex (`getScreenPixelColorHex`)</h3>
+<p>
+  <button type="button" (click)="PickColorSamplePoint()">Pick point on screen</button>
+  <button
+    type="button"
+    (click)="ReadPixelColorHexAtPickedPoint()"
+    [disabled]="!ColorSamplePoint || pixelColorBusy"
+  >
+    Read hex at picked point
+  </button>
+  <button
+    type="button"
+    (click)="ReadPixelColorHexAtGetCordsPoint()"
+    [disabled]="!ToClickCords || pixelColorBusy"
+  >
+    Read hex at GetCords point
+  </button>
+</p>
+<p>Picked for color: {{ ColorSamplePoint ? ColorSamplePoint.x + ', ' + ColorSamplePoint.y : '—' }}</p>
+@if (PixelColorHex) {
+  <p>
+    <span class="color-swatch" [style.background-color]="PixelColorHex" title="Sampled color"></span>
+    <code>{{ PixelColorHex }}</code>
+  </p>
+}
+@if (PixelColorError) {
+  <p class="color-sample-error">{{ PixelColorError }}</p>
+}

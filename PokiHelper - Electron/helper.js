@@ -492,6 +492,119 @@ async function takeFullScreenshot(topLeftX, topLeftY, bottomRightX, bottomRightY
   return takeScreenshotRegionDip(topLeftX, topLeftY, bottomRightX, bottomRightY);
 }
 
+/**
+ * @param {number} n
+ * @returns {string}
+ */
+function byteToHex2(n) {
+  const b = clampInt(Math.round(Number(n)), 0, 255);
+  return b.toString(16).padStart(2, '0');
+}
+
+/**
+ * @param {any} j Jimp image (expects at least one pixel).
+ * @param {number} x
+ * @param {number} y
+ * @returns {string} `#rrggbb` lowercase.
+ */
+function jimpPixelAtToHex(j, x, y) {
+  const xi = clampInt(Math.trunc(x), 0, j.bitmap.width - 1);
+  const yi = clampInt(Math.trunc(y), 0, j.bitmap.height - 1);
+  const idx = (yi * j.bitmap.width + xi) * 4;
+  const d = j.bitmap.data;
+  return `#${byteToHex2(d[idx])}${byteToHex2(d[idx + 1])}${byteToHex2(d[idx + 2])}`;
+}
+
+/**
+ * One representative RGB sample when a 1×1 DIP region maps to multiple physical pixels (per-monitor scaling).
+ * @param {any} j Jimp image
+ * @returns {string} `#rrggbb` lowercase.
+ */
+function jimpRepresentativePixelToHex(j) {
+  const cx = Math.max(0, Math.floor((j.bitmap.width - 1) / 2));
+  const cy = Math.max(0, Math.floor((j.bitmap.height - 1) / 2));
+  return jimpPixelAtToHex(j, cx, cy);
+}
+
+/**
+ * Samples the screen at DIP coordinates (same space as coordinate pick / `moveMouse` / `waitForNextClickCoordinates`).
+ * Uses nut-js capture with per-display monitor-local rects on Windows multi-monitor setups.
+ *
+ * @param {number} dipX
+ * @param {number} dipY
+ * @returns {Promise<string>} CSS-style hex color `#rrggbb`.
+ */
+async function getScreenPixelColorHex(dipX, dipY) {
+  for (const v of [dipX, dipY]) {
+    if (typeof v !== 'number' || !Number.isFinite(v)) {
+      throw new TypeError('getScreenPixelColorHex expects finite DIP coordinates');
+    }
+  }
+  const px = Math.trunc(Number(dipX));
+  const py = Math.trunc(Number(dipY));
+
+  let electronScreen = null;
+  try {
+    ({ screen: electronScreen } = require('electron'));
+  } catch {
+    /* helper outside Electron main */
+  }
+
+  if (electronScreen?.getAllDisplays) {
+    /** Same DIP→monitor-local pipeline as {@link takeScreenshotRegionDipNutSplitByDisplays} (1×1 rect). */
+    const dip = { left: px, top: py, width: 1, height: 1 };
+    const displays = electronScreen.getAllDisplays();
+    for (const d of displays) {
+      const b = d.bounds;
+      const il = Math.max(dip.left, b.x);
+      const it = Math.max(dip.top, b.y);
+      const ir = Math.min(dip.left + dip.width, b.x + b.width);
+      const ib = Math.min(dip.top + dip.height, b.y + b.height);
+      if (ir <= il || ib <= it) {
+        continue;
+      }
+
+      const subPhys = dipAxisRectToPhysicalRegion(il, it, ir - il, ib - it);
+      const monPhys = dipAxisRectToPhysicalRegion(b.x, b.y, b.width, b.height);
+      const overlap = intersectPhysicalRects(subPhys, monPhys);
+      if (!overlap) {
+        continue;
+      }
+
+      const localRect = {
+        left: overlap.left - monPhys.left,
+        top: overlap.top - monPhys.top,
+        width: overlap.width,
+        height: overlap.height,
+      };
+      const grabRect = trimPhysicalRectFromFarEdge(localRect, CAPTURE_EDGE_TRIM_PX);
+      if (grabRect.width < 1 || grabRect.height < 1) {
+        continue;
+      }
+
+      try {
+        const j = await nutGrabRegionWithShrink(grabRect.left, grabRect.top, grabRect.width, grabRect.height);
+        return jimpRepresentativePixelToHex(j);
+      } catch (e) {
+        const msg = e && typeof e.message === 'string' ? e.message : String(e);
+        throw new Error(`getScreenPixelColorHex failed: ${msg}`);
+      }
+    }
+    throw new Error('getScreenPixelColorHex: coordinates do not overlap any display');
+  }
+
+  const phys = dipToPhysicalScreenPoint(px, py);
+  const lx = clampInt(Math.round(phys.x), MOUSE_MIN, MOUSE_MAX);
+  const ly = clampInt(Math.round(phys.y), MOUSE_MIN, MOUSE_MAX);
+  try {
+    const j = await nutGrabRegionWithShrink(lx, ly, 1, 1);
+    return jimpRepresentativePixelToHex(j);
+  } catch (e) {
+    const msg = e && typeof e.message === 'string' ? e.message : String(e);
+    throw new Error(`getScreenPixelColorHex failed: ${msg}`);
+  }
+}
+
 /** Directory with `eng.traineddata.gz` (bundled via `@tesseract.js-data/eng`). */
 const TESSERACT_ENG_LANG_DIR = path.join(
   path.dirname(require.resolve('@tesseract.js-data/eng/package.json')),
@@ -608,6 +721,7 @@ module.exports = {
   keyChord,
   takeFullScreenshot,
   takeScreenshotRegionDip,
+  getScreenPixelColorHex,
   recognizeTextFromImageBase64,
   disposeOcrWorker,
 };

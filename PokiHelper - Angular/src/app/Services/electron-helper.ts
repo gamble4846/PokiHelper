@@ -114,6 +114,13 @@ export class ElectronHelper {
   }
 
   /**
+   * Reads the RGB color at DIP `(dipX, dipY)` and returns a CSS hex string `#rrggbb` (same coordinate space as the overlay picker).
+   */
+  getScreenPixelColorHex(dipX: number, dipY: number): Promise<string> {
+    return this.api().getScreenPixelColorHex(dipX, dipY);
+  }
+
+  /**
    * Picks screen coordinates: opens a dim full-screen overlay (all monitors) with a crosshair (+) cursor,
    * then resolves with the click position (`screenX` / `screenY`). Esc cancels. Optional `button` filters
    * which button completes the wait (default left). Use `cancelWaitForNextClickCoordinates` to abort.
