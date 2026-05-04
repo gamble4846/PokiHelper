@@ -1,0 +1,17 @@
+.body-container{
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+.menu-bar-container{
+    height: 65px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.content-container{
+    height: calc(100vh - 65px);
+    width: 100%;
+    overflow: auto;
+}

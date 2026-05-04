@@ -1,0 +1,252 @@
+.super-user-menu-bar {
+  position: relative;
+  background: #001529;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
+
+.menu-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  min-height: 56px;
+}
+
+/* Hamburger: visible on mobile only */
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s;
+  z-index: 102;
+}
+.hamburger:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.hamburger-line {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+.hamburger-line:nth-child(1).open {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburger-line:nth-child(2).open {
+  opacity: 0;
+}
+.hamburger-line:nth-child(3).open {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Desktop nav: hidden on mobile */
+.nav-desktop {
+  display: none;
+}
+.menu-actions-desktop {
+  display: none;
+}
+
+/* Mobile overlay (backdrop) */
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 101;
+  top: 56px; /* below header */
+}
+.nav-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Mobile drawer (slide-in panel) */
+.nav-drawer {
+  position: fixed;
+  top: 56px;
+  right: 0;
+  width: 280px;
+  max-width: 85vw;
+  height: calc(100vh - 56px);
+  background: #001529;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.2);
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  z-index: 102;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+  overflow-y: auto;
+}
+.nav-drawer.open {
+  transform: translateX(0);
+}
+
+.nav-drawer .nav-links {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+.nav-drawer .nav-link {
+  padding: 14px 20px;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.nav-drawer .nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.nav-drawer .nav-link-active {
+  background: rgba(24, 144, 255, 0.25);
+  border-left: 3px solid #1890ff;
+}
+.nav-drawer .menu-bar-actions {
+  margin-top: auto;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.nav-drawer .menu-bar-actions {
+  flex-direction: column;
+  gap: 8px;
+}
+.nav-drawer .action-btn.home-btn,
+.nav-drawer .logout-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+.nav-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+.nav-link-active {
+  color: #fff;
+  background: transparent;
+}
+
+.menu-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Home & action buttons: match dark header (nav-link style) */
+.super-user-menu-bar .action-btn.home-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  color: rgba(255, 255, 255, 0.85);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+.super-user-menu-bar .action-btn.home-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.super-user-menu-bar .action-btn .action-label {
+  margin-left: 4px;
+}
+.super-user-menu-bar .action-btn .anticon,
+.super-user-menu-bar .action-btn [nz-icon] {
+  color: inherit;
+}
+
+/* Logout button: match dark header (nav-link style) */
+.super-user-menu-bar .logout-btn.ant-btn,
+.super-user-menu-bar button.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  color: rgba(255, 255, 255, 0.85) !important;
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+.super-user-menu-bar .logout-btn.ant-btn:hover,
+.super-user-menu-bar button.logout-btn:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+.super-user-menu-bar .logout-btn .logout-label {
+  margin-left: 4px;
+}
+.super-user-menu-bar .logout-btn .anticon,
+.super-user-menu-bar .logout-btn [nz-icon] {
+  color: inherit;
+}
+
+/* Desktop: show horizontal nav and logout, hide hamburger */
+@media (min-width: 769px) {
+  .menu-bar-inner {
+    padding: 0 24px;
+  }
+
+  .hamburger {
+    display: none;
+  }
+
+  .nav-desktop {
+    display: flex;
+    flex: 1;
+    margin-left: 8px;
+  }
+  .menu-actions-desktop {
+    display: flex;
+  }
+
+  .nav-overlay,
+  .nav-drawer {
+    display: none !important;
+  }
+}
+
+/* Mobile: hide nav and logout in header; only hamburger visible by default */
+@media (max-width: 768px) {
+  .nav-desktop,
+  .menu-actions-desktop {
+    display: none !important;
+  }
+
+  .nav-link {
+    font-size: 15px;
+  }
+}

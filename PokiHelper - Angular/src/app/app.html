@@ -1,0 +1,12 @@
+<div class="body-container">
+  <div class="menu-bar-container">
+    <app-menu-bar></app-menu-bar>
+  </div>
+  <div class="content-container">
+    <ng-container *ngTemplateOutlet="RouterOutletTemplate"></ng-container>
+  </div>
+</div>
+
+<ng-template #RouterOutletTemplate>
+  <router-outlet></router-outlet>
+</ng-template>
