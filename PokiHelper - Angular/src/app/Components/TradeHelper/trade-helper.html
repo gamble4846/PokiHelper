@@ -1,4 +1,14 @@
 <p>trade-helper works!</p>
 
-<button (click)="ClickCords()">ClickCords</button>
-<button (click)="GetCords()">GetCords</button> - {{PrintedCords}}
+<button type="button" (click)="PickScreenshotCornerA()">Screenshot corner 1 (click on screen)</button>
+<button type="button" (click)="PickScreenshotCornerB()">Screenshot corner 2 (click on screen)</button>
+<button type="button" (click)="TakeScreenshot()" [disabled]="!ScreenshotCornerA || !ScreenshotCornerB">Take screenshot (region)</button>
+<p>Corner 1: {{ ScreenshotCornerA ? (ScreenshotCornerA.x + ', ' + ScreenshotCornerA.y) : '—' }}</p>
+<p>Corner 2: {{ ScreenshotCornerB ? (ScreenshotCornerB.x + ', ' + ScreenshotCornerB.y) : '—' }}</p>
+
+<button type="button" (click)="ClickCords()">ClickCords</button>
+<button type="button" (click)="GetCords()">GetCords</button> — {{PrintedCords}}
+
+@if (SRCBASE64) {
+  <p><img [src]="SRCBASE64" alt="Captured region" width="500" /></p>
+}

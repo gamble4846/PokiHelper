@@ -17,6 +17,13 @@ export interface ClickCoordinatesResult {
   button: 'left' | 'right' | 'middle' | 'unknown';
 }
 
+/** PNG screenshot result; `width` / `height` are pixel size of the image. Base64 without the `data:` prefix. */
+export interface FullScreenshotResult {
+  width: number;
+  height: number;
+  base64: string;
+}
+
 export interface PokiHelperPreload {
   moveMouse(x: number, y: number): Promise<void>;
   getMousePosition(): Promise<{ x: number; y: number }>;
@@ -34,6 +41,26 @@ export interface PokiHelperPreload {
   keyTap(keyName: string): Promise<void>;
   /** Example: `keyChord(['LeftControl'], 'V')` */
   keyChord(modifierKeyNames: string[], keyName: string): Promise<void>;
+  /**
+   * Captures a DIP rectangle (same space as coordinate pick). Pass top-left and bottom-right
+   * corners; order-independent. Same capture path as `takeScreenshotRegionDip`.
+   */
+  takeFullScreenshot(
+    topLeftX: number,
+    topLeftY: number,
+    bottomRightX: number,
+    bottomRightY: number,
+  ): Promise<FullScreenshotResult>;
+  /**
+   * Captures a rectangle in DIP screen space (same as coordinate pick / `moveMouse`).
+   * Pass top-left and bottom-right corners; order-independent. Uses nut-js only (no DXGI).
+   */
+  takeScreenshotRegionDip(
+    topLeftX: number,
+    topLeftY: number,
+    bottomRightX: number,
+    bottomRightY: number,
+  ): Promise<FullScreenshotResult>;
   /**
    * Shows a full-screen dim overlay (all monitors), crosshair (+) cursor, and resolves with `screenX` / `screenY`
    * on the first matching click. Esc cancels. Only one wait may be active at a time.

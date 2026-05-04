@@ -1,9 +1,16 @@
 'use strict';
 
-const { mouse, keyboard, Button, Key, Point } = require('@nut-tree-fork/nut-js');
+const { mouse, keyboard, Button, Key, Point, screen: nutScreen, Region } = require('@nut-tree-fork/nut-js');
+const Jimp = require('jimp');
 
 const MOUSE_MIN = -32768;
 const MOUSE_MAX = 32767;
+
+/**
+ * Shrink capture width/height from the right and bottom only so libnut-win32 accepts the rect.
+ * Symmetric inset (moving left/top) breaks non-primary monitors: "x coordinate outside of display".
+ */
+const CAPTURE_EDGE_TRIM_PX = 12;
 
 function clampInt(value, min, max) {
   const n = Math.trunc(Number(value));
@@ -183,6 +190,306 @@ async function keyChord(modifierKeyNames, keyName) {
   await keyboard.releaseKey(...mods, k);
 }
 
+/**
+ * @param {any} image
+ * @returns {Promise<Buffer>}
+ */
+function jimpToPngBuffer(image) {
+  return new Promise((resolve, reject) => {
+    image.getBuffer(Jimp.MIME_PNG, (err, buffer) => {
+      if (err) reject(err);
+      else resolve(buffer);
+    });
+  });
+}
+
+/**
+ * Trim width/height from the far edges only; origin stays fixed so multi-monitor captures stay valid.
+ * @param {{ left: number, top: number, width: number, height: number }} rect
+ * @param {number} px max pixels to remove from width and from height
+ */
+function trimPhysicalRectFromFarEdge(rect, px) {
+  const p = Math.max(0, Math.round(Number(px)) || 0);
+  const dw = Math.min(p, Math.max(0, rect.width - 1));
+  const dh = Math.min(p, Math.max(0, rect.height - 1));
+  return {
+    left: rect.left,
+    top: rect.top,
+    width: Math.max(1, rect.width - dw),
+    height: Math.max(1, rect.height - dh),
+  };
+}
+
+/**
+ * @param {{ left: number, top: number, width: number, height: number }} a
+ * @param {{ left: number, top: number, width: number, height: number }} b
+ * @returns {{ left: number, top: number, width: number, height: number } | null}
+ */
+function intersectPhysicalRects(a, b) {
+  const l = Math.max(a.left, b.left);
+  const t = Math.max(a.top, b.top);
+  const r = Math.min(a.left + a.width, b.left + b.width);
+  const bot = Math.min(a.top + a.height, b.top + b.height);
+  if (r <= l || bot <= t) {
+    return null;
+  }
+  return {
+    left: l,
+    top: t,
+    width: Math.max(1, Math.round(r - l)),
+    height: Math.max(1, Math.round(bot - t)),
+  };
+}
+
+const NUT_CAPTURE_REJECT_RE = /exceeds display|outside of display|display dimensions/i;
+
+/**
+ * Normalized DIP rectangle from two opposite corners (order-independent).
+ * @param {number} x1
+ * @param {number} y1
+ * @param {number} x2
+ * @param {number} y2
+ */
+function normalizeDipRect(x1, y1, x2, y2) {
+  const l = Math.trunc(Math.min(Number(x1), Number(x2)));
+  const t = Math.trunc(Math.min(Number(y1), Number(y2)));
+  const r = Math.trunc(Math.max(Number(x1), Number(x2)));
+  const b = Math.trunc(Math.max(Number(y1), Number(y2)));
+  const w = clampInt(Math.max(1, r - l), 1, MOUSE_MAX);
+  const h = clampInt(Math.max(1, b - t), 1, MOUSE_MAX);
+  return {
+    left: clampInt(l, MOUSE_MIN, MOUSE_MAX),
+    top: clampInt(t, MOUSE_MIN, MOUSE_MAX),
+    width: w,
+    height: h,
+  };
+}
+
+/**
+ * Axis-aligned physical pixel bounds for a DIP axis-aligned rectangle (handles per-monitor scaling).
+ * @param {number} leftDip
+ * @param {number} topDip
+ * @param {number} widthDip
+ * @param {number} heightDip
+ */
+function dipAxisRectToPhysicalRegion(leftDip, topDip, widthDip, heightDip) {
+  const rightDip = leftDip + widthDip;
+  const bottomDip = topDip + heightDip;
+  const tl = dipToPhysicalScreenPoint(leftDip, topDip);
+  const tr = dipToPhysicalScreenPoint(rightDip, topDip);
+  const bl = dipToPhysicalScreenPoint(leftDip, bottomDip);
+  const br = dipToPhysicalScreenPoint(rightDip, bottomDip);
+  const xs = [tl.x, tr.x, bl.x, br.x];
+  const ys = [tl.y, tr.y, bl.y, br.y];
+  const minPx = Math.min(...xs);
+  const minPy = Math.min(...ys);
+  const maxPx = Math.max(...xs);
+  const maxPy = Math.max(...ys);
+  return {
+    left: Math.round(minPx),
+    top: Math.round(minPy),
+    width: Math.max(1, Math.round(maxPx - minPx)),
+    height: Math.max(1, Math.round(maxPy - minPy)),
+  };
+}
+
+/**
+ * @param {any} shot nut-js screen Image
+ */
+async function jimpFromNutScreenshot(shot) {
+  const rgb = await shot.toRGB();
+  return new Promise((resolve, reject) => {
+    new Jimp(rgb.width, rgb.height, (err, image) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      image.bitmap.data.set(Buffer.from(rgb.data));
+      resolve(image);
+    });
+  });
+}
+
+/**
+ * @param {number} left
+ * @param {number} top
+ * @param {number} width
+ * @param {number} height
+ * @returns {Promise<any>} Jimp image
+ */
+async function nutGrabRegionWithShrink(left, top, width, height) {
+  let r = { left, top, width, height };
+  let lastErr;
+  for (let attempt = 0; attempt < 96; attempt++) {
+    try {
+      const shot = await nutScreen.grabRegion(new Region(r.left, r.top, r.width, r.height));
+      return await jimpFromNutScreenshot(shot);
+    } catch (e) {
+      lastErr = e;
+      const msg = e && typeof e.message === 'string' ? e.message : String(e);
+      if (NUT_CAPTURE_REJECT_RE.test(msg) && r.width > 16 && r.height > 16) {
+        r = { left: r.left, top: r.top, width: r.width - 1, height: r.height - 1 };
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
+/**
+ * @param {{ j: any, x: number, y: number }[]} pieces top-left placement on canvas (physical px, relative to fullPhysRaw)
+ * @param {number} canvasW
+ * @param {number} canvasH
+ */
+async function compositeJimpAtOffsets(pieces, canvasW, canvasH) {
+  const canvas = await new Promise((resolve, reject) => {
+    new Jimp(canvasW, canvasH, (err, image) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(image);
+    });
+  });
+  for (const { j, x, y } of pieces) {
+    canvas.composite(j, Math.round(x), Math.round(y));
+  }
+  const png = await jimpToPngBuffer(canvas);
+  return {
+    width: canvasW,
+    height: canvasH,
+    base64: png.toString('base64'),
+  };
+}
+
+/**
+ * libnut-win32 `grabRegion` expects **monitor-local** pixels; global virtual-desktop coords fail on
+ * non-primary displays ("x coordinate outside of display"). Split the DIP rect per Electron display.
+ * @param {any} electronScreen
+ * @param {{ left: number, top: number, width: number, height: number }} dip
+ */
+async function takeScreenshotRegionDipNutSplitByDisplays(electronScreen, dip) {
+  const displays = electronScreen.getAllDisplays();
+  const fullPhysRaw = dipAxisRectToPhysicalRegion(dip.left, dip.top, dip.width, dip.height);
+  const fullPhys = trimPhysicalRectFromFarEdge(fullPhysRaw, CAPTURE_EDGE_TRIM_PX);
+
+  const pieces = [];
+  for (const d of displays) {
+    const b = d.bounds;
+    const il = Math.max(dip.left, b.x);
+    const it = Math.max(dip.top, b.y);
+    const ir = Math.min(dip.left + dip.width, b.x + b.width);
+    const ib = Math.min(dip.top + dip.height, b.y + b.height);
+    if (ir <= il || ib <= it) {
+      continue;
+    }
+
+    const subPhys = dipAxisRectToPhysicalRegion(il, it, ir - il, ib - it);
+    const monPhys = dipAxisRectToPhysicalRegion(b.x, b.y, b.width, b.height);
+    const overlap = intersectPhysicalRects(subPhys, monPhys);
+    if (!overlap) {
+      continue;
+    }
+
+    const localRect = {
+      left: overlap.left - monPhys.left,
+      top: overlap.top - monPhys.top,
+      width: overlap.width,
+      height: overlap.height,
+    };
+    const grabRect = trimPhysicalRectFromFarEdge(localRect, CAPTURE_EDGE_TRIM_PX);
+
+    let j;
+    try {
+      j = await nutGrabRegionWithShrink(grabRect.left, grabRect.top, grabRect.width, grabRect.height);
+    } catch (e) {
+      const msg = e && typeof e === 'object' && 'message' in e ? e.message : String(e);
+      throw new Error(`Region screenshot failed (nut-js) on a display: ${msg}`);
+    }
+
+    const destXGlobal = monPhys.left + grabRect.left;
+    const destYGlobal = monPhys.top + grabRect.top;
+    pieces.push({
+      j,
+      x: destXGlobal - fullPhysRaw.left,
+      y: destYGlobal - fullPhysRaw.top,
+    });
+  }
+
+  if (pieces.length === 0) {
+    throw new Error('Region screenshot: selection does not overlap any display.');
+  }
+
+  return compositeJimpAtOffsets(pieces, fullPhys.width, fullPhys.height);
+}
+
+/**
+ * PNG of a screen rectangle in DIP space (same as overlay / `moveMouse`). Uses nut-js only (no DXGI).
+ * Pass top-left and bottom-right corners; order does not matter.
+ * @param {number} topLeftX
+ * @param {number} topLeftY
+ * @param {number} bottomRightX
+ * @param {number} bottomRightY
+ * @returns {Promise<{ width: number, height: number, base64: string }>}
+ */
+async function takeScreenshotRegionDip(topLeftX, topLeftY, bottomRightX, bottomRightY) {
+  const dip = normalizeDipRect(topLeftX, topLeftY, bottomRightX, bottomRightY);
+
+  let electronScreen = null;
+  try {
+    ({ screen: electronScreen } = require('electron'));
+  } catch {
+    /* helper outside Electron main */
+  }
+
+  if (electronScreen?.getAllDisplays) {
+    try {
+      return await takeScreenshotRegionDipNutSplitByDisplays(electronScreen, dip);
+    } catch (e) {
+      const msg = e && typeof e === 'object' && 'message' in e ? e.message : String(e);
+      throw new Error(
+        `Region screenshot failed (nut-js). Multi-monitor split or capture driver: ${msg}`,
+      );
+    }
+  }
+
+  const physRaw = dipAxisRectToPhysicalRegion(dip.left, dip.top, dip.width, dip.height);
+  const phys = trimPhysicalRectFromFarEdge(physRaw, CAPTURE_EDGE_TRIM_PX);
+  try {
+    const j = await nutGrabRegionWithShrink(phys.left, phys.top, phys.width, phys.height);
+    const png = await jimpToPngBuffer(j);
+    return {
+      width: j.bitmap.width,
+      height: j.bitmap.height,
+      base64: png.toString('base64'),
+    };
+  } catch (e) {
+    const msg = e && typeof e === 'object' && 'message' in e ? e.message : String(e);
+    throw new Error(
+      `Region screenshot failed (nut-js). Very large regions or multi-monitor rectangles may be rejected by the capture driver: ${msg}`,
+    );
+  }
+}
+
+/**
+ * DIP rectangle screenshot (same coordinate space as `moveMouse` / `waitForNextClickCoordinates`).
+ * Corner order does not matter. Uses the same nut-js path as `takeScreenshotRegionDip`.
+ * @param {number} topLeftX
+ * @param {number} topLeftY
+ * @param {number} bottomRightX
+ * @param {number} bottomRightY
+ * @returns {Promise<{ width: number, height: number, base64: string }>}
+ */
+async function takeFullScreenshot(topLeftX, topLeftY, bottomRightX, bottomRightY) {
+  for (const v of [topLeftX, topLeftY, bottomRightX, bottomRightY]) {
+    if (typeof v !== 'number' || !Number.isFinite(v)) {
+      throw new TypeError('takeFullScreenshot expects four finite DIP coordinates');
+    }
+  }
+  return takeScreenshotRegionDip(topLeftX, topLeftY, bottomRightX, bottomRightY);
+}
+
 module.exports = {
   moveMouse,
   getMousePosition,
@@ -193,4 +500,6 @@ module.exports = {
   typeText,
   keyTap,
   keyChord,
+  takeFullScreenshot,
+  takeScreenshotRegionDip,
 };

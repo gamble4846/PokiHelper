@@ -1,4 +1,9 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
+
+/** Optional: software GPU if `desktopCapturer` hits DXGI issues (full screenshot tries Chromium first). */
+if (process.env.POKI_HELPER_SOFTWARE_GPU === '1') {
+  app.disableHardwareAcceleration();
+}
 const path = require('path');
 const fs = require('fs');
 const helper = require('./helper');
@@ -19,6 +24,16 @@ function registerPokiHelperIpc() {
   ipcMain.handle('poki-helper:key-tap', (_e, keyName) => helper.keyTap(keyName));
   ipcMain.handle('poki-helper:key-chord', (_e, modifierKeyNames, keyName) =>
     helper.keyChord(modifierKeyNames, keyName),
+  );
+  ipcMain.handle(
+    'poki-helper:take-full-screenshot',
+    (_e, topLeftX, topLeftY, bottomRightX, bottomRightY) =>
+      helper.takeFullScreenshot(topLeftX, topLeftY, bottomRightX, bottomRightY),
+  );
+  ipcMain.handle(
+    'poki-helper:take-screenshot-region-dip',
+    (_e, topLeftX, topLeftY, bottomRightX, bottomRightY) =>
+      helper.takeScreenshotRegionDip(topLeftX, topLeftY, bottomRightX, bottomRightY),
   );
   ipcMain.handle('poki-helper:wait-next-click-coordinates', (_e, opts) =>
     coordinatePickOverlay.startPick(opts ?? {}),

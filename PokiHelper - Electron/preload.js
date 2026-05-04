@@ -14,6 +14,22 @@ contextBridge.exposeInMainWorld('pokiHelper', {
   keyTap: (keyName) => ipcRenderer.invoke('poki-helper:key-tap', keyName),
   keyChord: (modifierKeyNames, keyName) =>
     ipcRenderer.invoke('poki-helper:key-chord', modifierKeyNames, keyName),
+  takeFullScreenshot: (topLeftX, topLeftY, bottomRightX, bottomRightY) =>
+    ipcRenderer.invoke(
+      'poki-helper:take-full-screenshot',
+      topLeftX,
+      topLeftY,
+      bottomRightX,
+      bottomRightY,
+    ),
+  takeScreenshotRegionDip: (topLeftX, topLeftY, bottomRightX, bottomRightY) =>
+    ipcRenderer.invoke(
+      'poki-helper:take-screenshot-region-dip',
+      topLeftX,
+      topLeftY,
+      bottomRightX,
+      bottomRightY,
+    ),
   waitForNextClickCoordinates: (opts) =>
     ipcRenderer.invoke('poki-helper:wait-next-click-coordinates', opts ?? {}),
   cancelWaitForNextClickCoordinates: () =>

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import type {
   ClickCoordinatesResult,
+  FullScreenshotResult,
   PokiHelperPreload,
   WaitForNextClickCoordinatesOptions,
 } from '../../poki-helper-preload';
@@ -73,6 +74,32 @@ export class ElectronHelper {
 
   keyChord(modifierKeyNames: string[], keyName: string): Promise<void> {
     return this.api().keyChord(modifierKeyNames, keyName);
+  }
+
+  /**
+   * Captures a DIP rectangle from two corners (same space as `waitForNextClickCoordinates`).
+   * Corners may be passed in any order. Use `data:image/png;base64,` + `result.base64` for `<img [src]>`.
+   */
+  takeFullScreenshot(
+    topLeftX: number,
+    topLeftY: number,
+    bottomRightX: number,
+    bottomRightY: number,
+  ): Promise<FullScreenshotResult> {
+    return this.api().takeFullScreenshot(topLeftX, topLeftY, bottomRightX, bottomRightY);
+  }
+
+  /**
+   * Captures a DIP rectangle from top-left to bottom-right (same coordinate space as the overlay picker).
+   * Corners can be passed in any order. Uses nut-js only.
+   */
+  takeScreenshotRegionDip(
+    topLeftX: number,
+    topLeftY: number,
+    bottomRightX: number,
+    bottomRightY: number,
+  ): Promise<FullScreenshotResult> {
+    return this.api().takeScreenshotRegionDip(topLeftX, topLeftY, bottomRightX, bottomRightY);
   }
 
   /**
