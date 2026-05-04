@@ -35,6 +35,9 @@ function registerPokiHelperIpc() {
     (_e, topLeftX, topLeftY, bottomRightX, bottomRightY) =>
       helper.takeScreenshotRegionDip(topLeftX, topLeftY, bottomRightX, bottomRightY),
   );
+  ipcMain.handle('poki-helper:ocr-image-base64', (_e, base64Image, options) =>
+    helper.recognizeTextFromImageBase64(base64Image, options ?? {}),
+  );
   ipcMain.handle('poki-helper:wait-next-click-coordinates', (_e, opts) =>
     coordinatePickOverlay.startPick(opts ?? {}),
   );
@@ -88,5 +91,6 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
+  void helper.disposeOcrWorker();
   coordinatePickOverlay.dispose();
 });

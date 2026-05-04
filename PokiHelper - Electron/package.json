@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@nut-tree-fork/nut-js": "^4.2.6",
-    "jimp": "^0.22.10"
+    "@tesseract.js-data/eng": "^1.0.0",
+    "jimp": "^0.22.10",
+    "tesseract.js": "^7.0.0"
   }
 }

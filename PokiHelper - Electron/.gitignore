@@ -1,2 +1,4 @@
 node_modules/
 AngularBuilt/
+# Local artifact; use @tesseract.js-data/eng from npm instead.
+eng.traineddata

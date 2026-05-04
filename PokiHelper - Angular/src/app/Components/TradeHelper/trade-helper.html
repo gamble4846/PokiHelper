@@ -8,7 +8,10 @@
 
 <button type="button" (click)="ClickCords()">ClickCords</button>
 <button type="button" (click)="GetCords()">GetCords</button> — {{PrintedCords}}
+<button type="button" (click)="GetText()">GetText</button>
 
 @if (SRCBASE64) {
   <p><img [src]="SRCBASE64" alt="Captured region" width="500" /></p>
 }
+
+<pre>{{PrintedText}}</pre>

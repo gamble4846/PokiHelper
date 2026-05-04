@@ -1,7 +1,9 @@
 'use strict';
 
+const path = require('path');
 const { mouse, keyboard, Button, Key, Point, screen: nutScreen, Region } = require('@nut-tree-fork/nut-js');
 const Jimp = require('jimp');
+const { createWorker, OEM, PSM } = require('tesseract.js');
 
 const MOUSE_MIN = -32768;
 const MOUSE_MAX = 32767;
@@ -490,6 +492,110 @@ async function takeFullScreenshot(topLeftX, topLeftY, bottomRightX, bottomRightY
   return takeScreenshotRegionDip(topLeftX, topLeftY, bottomRightX, bottomRightY);
 }
 
+/** Directory with `eng.traineddata.gz` (bundled via `@tesseract.js-data/eng`). */
+const TESSERACT_ENG_LANG_DIR = path.join(
+  path.dirname(require.resolve('@tesseract.js-data/eng/package.json')),
+  '4.0.0_best_int',
+);
+
+/** Root of `tesseract.js-core` (WASM entrypoints live here). */
+const TESSERACT_CORE_DIR = path.dirname(require.resolve('tesseract.js-core/package.json'));
+
+let ocrWorkerPromise = null;
+
+async function getOcrWorker() {
+  if (!ocrWorkerPromise) {
+    ocrWorkerPromise = createWorker('eng', OEM.LSTM_ONLY, {
+      corePath: TESSERACT_CORE_DIR,
+      langPath: TESSERACT_ENG_LANG_DIR,
+    });
+  }
+  return ocrWorkerPromise;
+}
+
+/**
+ * @param {string} base64OrDataUrl raw base64 or `data:*;base64,...`
+ * @returns {{ buffer: Buffer }}
+ */
+function decodeBase64ImagePayload(base64OrDataUrl) {
+  const s = String(base64OrDataUrl).trim();
+  const m = /^data:[^;]+;base64,(.+)$/i.exec(s);
+  const b64 = m ? m[1] : s;
+  return { buffer: Buffer.from(b64, 'base64') };
+}
+
+/**
+ * Grayscale, mild contrast, upscale small captures / downscale huge images before OCR.
+ * @param {Buffer} pngOrImageBuffer
+ * @param {{ preprocess?: boolean }} opts
+ * @returns {Promise<Buffer>} PNG buffer
+ */
+async function preprocessImageBufferForOcr(pngOrImageBuffer, opts) {
+  if (opts.preprocess === false) {
+    return pngOrImageBuffer;
+  }
+  let img = await Jimp.read(pngOrImageBuffer);
+  const w0 = img.bitmap.width;
+  const h0 = img.bitmap.height;
+  const minSide = Math.min(w0, h0);
+  const maxSide = Math.max(w0, h0);
+  if (minSide > 0 && minSide < 400) {
+    const f = Math.min(2.25, 400 / minSide);
+    img = img.scale(f);
+  }
+  const maxAfter = Math.max(img.bitmap.width, img.bitmap.height);
+  if (maxAfter > 1800) {
+    img = img.scale(1800 / maxAfter);
+  }
+  img.greyscale().contrast(0.22);
+  return jimpToPngBuffer(img);
+}
+
+/**
+ * OCR in the Electron main process (tesseract.js + Node worker threads + local traineddata).
+ * No cloud APIs; heavier work stays out of the renderer.
+ *
+ * @param {string} base64Image raw base64 or full data URL
+ * @param {{ preprocess?: boolean, psm?: string | number, dpi?: number }} [options]
+ * @returns {Promise<string>}
+ */
+async function recognizeTextFromImageBase64(base64Image, options) {
+  if (typeof base64Image !== 'string' || base64Image.length === 0) {
+    throw new TypeError('recognizeTextFromImageBase64 expects a non-empty string');
+  }
+  const opts = options && typeof options === 'object' ? options : {};
+  const { buffer } = decodeBase64ImagePayload(base64Image);
+  const pngBuf = await preprocessImageBufferForOcr(buffer, opts);
+
+  const worker = await getOcrWorker();
+  const psm = opts.psm != null ? String(opts.psm) : String(PSM.SINGLE_BLOCK);
+  const dpi = opts.dpi != null ? String(opts.dpi) : '220';
+  await worker.setParameters({
+    tessedit_pageseg_mode: psm,
+    user_defined_dpi: dpi,
+  });
+
+  const { data } = await worker.recognize(pngBuf);
+  return (data.text || '').trim();
+}
+
+/**
+ * @returns {Promise<void>}
+ */
+async function disposeOcrWorker() {
+  if (!ocrWorkerPromise) {
+    return;
+  }
+  const p = ocrWorkerPromise;
+  ocrWorkerPromise = null;
+  try {
+    const w = await p;
+    await w.terminate();
+  } catch {
+    /* ignore */
+  }
+}
+
 module.exports = {
   moveMouse,
   getMousePosition,
@@ -502,4 +608,6 @@ module.exports = {
   keyChord,
   takeFullScreenshot,
   takeScreenshotRegionDip,
+  recognizeTextFromImageBase64,
+  disposeOcrWorker,
 };

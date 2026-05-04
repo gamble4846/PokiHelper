@@ -24,6 +24,16 @@ export interface FullScreenshotResult {
   base64: string;
 }
 
+/** Options for main-process OCR (`poki-helper:ocr-image-base64`). */
+export interface OcrImageBase64Options {
+  /** Default true: grayscale, contrast, scale small/large images before Tesseract. */
+  preprocess?: boolean;
+  /** Tesseract page segmentation mode (e.g. `3` auto, `6` single block). Default `6`. */
+  psm?: string | number;
+  /** Hint DPI passed to Tesseract (`user_defined_dpi`). Default `220`. */
+  dpi?: number;
+}
+
 export interface PokiHelperPreload {
   moveMouse(x: number, y: number): Promise<void>;
   getMousePosition(): Promise<{ x: number; y: number }>;
@@ -61,6 +71,13 @@ export interface PokiHelperPreload {
     bottomRightX: number,
     bottomRightY: number,
   ): Promise<FullScreenshotResult>;
+  /**
+   * Runs OCR in the Electron main process (local Tesseract, no cloud). Pass raw Base64 or a `data:*;base64,...` URL.
+   */
+  recognizeTextFromImageBase64(
+    base64Image: string,
+    options?: OcrImageBase64Options,
+  ): Promise<string>;
   /**
    * Shows a full-screen dim overlay (all monitors), crosshair (+) cursor, and resolves with `screenX` / `screenY`
    * on the first matching click. Esc cancels. Only one wait may be active at a time.

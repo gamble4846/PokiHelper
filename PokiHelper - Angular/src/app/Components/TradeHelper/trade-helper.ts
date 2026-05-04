@@ -11,7 +11,9 @@ import { ClickCoordinatesResult } from '../../../poki-helper-preload';
 
 export class TradeHelper {
 
-  constructor(private electronHelper: ElectronHelper) { }
+  constructor(
+    private electronHelper: ElectronHelper,
+  ) { }
 
   PrintedCords: string = "";
   ToClickCords: ClickCoordinatesResult | null = null;
@@ -20,6 +22,7 @@ export class TradeHelper {
   /** Opposite corner of the screenshot rectangle (DIP). */
   ScreenshotCornerB: ClickCoordinatesResult | null = null;
   SRCBASE64: string = "";
+  PrintedText: string = "";
 
   async GetCords() {
     const pos = await this.electronHelper.waitForNextClickCoordinates({
@@ -60,6 +63,11 @@ export class TradeHelper {
     }
     const shot = await this.electronHelper.takeFullScreenshot(a.x, a.y, b.x, b.y);
     this.SRCBASE64 = `data:image/png;base64,${shot.base64}`;
+  }
+
+  async GetText(){
+    const text = await this.electronHelper.recognizeTextFromImageBase64(this.SRCBASE64);
+    this.PrintedText = text;
   }
 }
 

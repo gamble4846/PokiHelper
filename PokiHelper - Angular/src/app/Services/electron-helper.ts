@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import type {
   ClickCoordinatesResult,
   FullScreenshotResult,
+  OcrImageBase64Options,
   PokiHelperPreload,
   WaitForNextClickCoordinatesOptions,
 } from '../../poki-helper-preload';
@@ -100,6 +101,16 @@ export class ElectronHelper {
     bottomRightY: number,
   ): Promise<FullScreenshotResult> {
     return this.api().takeScreenshotRegionDip(topLeftX, topLeftY, bottomRightX, bottomRightY);
+  }
+
+  /**
+   * OCR in the main process (local Tesseract.js + bundled English data). No remote OCR API.
+   */
+  recognizeTextFromImageBase64(
+    base64Image: string,
+    options?: OcrImageBase64Options,
+  ): Promise<string> {
+    return this.api().recognizeTextFromImageBase64(base64Image, options ?? {});
   }
 
   /**
