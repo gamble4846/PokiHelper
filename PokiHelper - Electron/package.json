@@ -8,5 +8,8 @@
   },
   "devDependencies": {
     "electron": "^35.1.5"
+  },
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.6"
   }
 }

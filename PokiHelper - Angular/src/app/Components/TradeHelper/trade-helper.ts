@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { ElectronHelper } from '../../Services/electron-helper';
 
 @Component({
   selector: 'app-trade-helper',
@@ -6,4 +7,16 @@ import { Component } from '@angular/core';
   templateUrl: './trade-helper.html',
   styleUrl: './trade-helper.css',
 })
-export class TradeHelper {}
+
+export class TradeHelper {
+
+  constructor(private electronHelper: ElectronHelper){}
+
+  async TypeHello(){
+    setTimeout(async () => {
+      this.electronHelper.typeText('Hello');
+    }, 1000);
+  }
+}
+
+

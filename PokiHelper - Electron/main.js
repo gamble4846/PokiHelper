@@ -1,6 +1,22 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const helper = require('./helper');
+
+function registerPokiHelperIpc() {
+  ipcMain.handle('poki-helper:move-mouse', (_e, x, y) => helper.moveMouse(x, y));
+  ipcMain.handle('poki-helper:get-mouse-position', () => helper.getMousePosition());
+  ipcMain.handle('poki-helper:click-mouse', (_e, button) => helper.clickMouse(button));
+  ipcMain.handle('poki-helper:double-click-mouse', (_e, button) => helper.doubleClickMouse(button));
+  ipcMain.handle('poki-helper:scroll-mouse-vertical', (_e, amount) =>
+    helper.scrollMouseVertical(amount),
+  );
+  ipcMain.handle('poki-helper:type-text', (_e, text) => helper.typeText(text));
+  ipcMain.handle('poki-helper:key-tap', (_e, keyName) => helper.keyTap(keyName));
+  ipcMain.handle('poki-helper:key-chord', (_e, modifierKeyNames, keyName) =>
+    helper.keyChord(modifierKeyNames, keyName),
+  );
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -10,6 +26,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
@@ -30,6 +47,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  registerPokiHelperIpc();
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
