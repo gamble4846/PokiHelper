@@ -1,1 +1,3 @@
-/* You can add global styles to this file, and also import other style files */
+.tab-header-container .ant-tabs-nav{
+    margin: 0 !important;
+}

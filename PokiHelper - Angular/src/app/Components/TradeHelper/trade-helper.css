@@ -1,19 +1,15 @@
-.color-swatch {
-  display: inline-block;
-  width: 2rem;
-  height: 2rem;
-  margin-right: 0.5rem;
-  vertical-align: middle;
-  border: 1px solid rgba(0, 0, 0, 0.25);
-  border-radius: 4px;
+.tab-header-container{
+  height: 48px;
 }
 
-.color-sample-error {
-  color: #c41d3a;
+.tab-container-container{
+  height: calc(100% - 48px);
+  padding: 10px 0px;
 }
 
-h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0.75rem 0 0.5rem;
+.trade-helper-container{
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  padding: 0px 5px;
 }

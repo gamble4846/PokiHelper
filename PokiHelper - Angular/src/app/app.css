@@ -5,13 +5,13 @@
 }
 
 .menu-bar-container{
-    height: 65px;
+    height: 56px;
     width: 100%;
     overflow: hidden;
 }
 
 .content-container{
-    height: calc(100vh - 65px);
+    height: calc(100vh - 56px);
     width: 100%;
     overflow: auto;
 }

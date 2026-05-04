@@ -1,47 +1,11 @@
-<p>trade-helper works!</p>
-
-<button type="button" (click)="PickScreenshotCornerA()">Screenshot corner 1 (click on screen)</button>
-<button type="button" (click)="PickScreenshotCornerB()">Screenshot corner 2 (click on screen)</button>
-<button type="button" (click)="TakeScreenshot()" [disabled]="!ScreenshotCornerA || !ScreenshotCornerB">Take screenshot (region)</button>
-<p>Corner 1: {{ ScreenshotCornerA ? (ScreenshotCornerA.x + ', ' + ScreenshotCornerA.y) : '—' }}</p>
-<p>Corner 2: {{ ScreenshotCornerB ? (ScreenshotCornerB.x + ', ' + ScreenshotCornerB.y) : '—' }}</p>
-
-<button type="button" (click)="ClickCords()">ClickCords</button>
-<button type="button" (click)="GetCords()">GetCords</button> — {{PrintedCords}}
-<button type="button" (click)="GetText()">GetText</button>
-
-@if (SRCBASE64) {
-  <p><img [src]="SRCBASE64" alt="Captured region" width="500" /></p>
-}
-
-<pre>{{PrintedText}}</pre>
-
-<hr />
-<h3>Example: screen pixel → hex (`getScreenPixelColorHex`)</h3>
-<p>
-  <button type="button" (click)="PickColorSamplePoint()">Pick point on screen</button>
-  <button
-    type="button"
-    (click)="ReadPixelColorHexAtPickedPoint()"
-    [disabled]="!ColorSamplePoint || pixelColorBusy"
-  >
-    Read hex at picked point
-  </button>
-  <button
-    type="button"
-    (click)="ReadPixelColorHexAtGetCordsPoint()"
-    [disabled]="!ToClickCords || pixelColorBusy"
-  >
-    Read hex at GetCords point
-  </button>
-</p>
-<p>Picked for color: {{ ColorSamplePoint ? ColorSamplePoint.x + ', ' + ColorSamplePoint.y : '—' }}</p>
-@if (PixelColorHex) {
-  <p>
-    <span class="color-swatch" [style.background-color]="PixelColorHex" title="Sampled color"></span>
-    <code>{{ PixelColorHex }}</code>
-  </p>
-}
-@if (PixelColorError) {
-  <p class="color-sample-error">{{ PixelColorError }}</p>
-}
+<div class="trade-helper-container">
+  <div class="tab-header-container">
+    <nz-tabs>
+      <nz-tab nzTitle="User 1"></nz-tab>
+      <nz-tab nzTitle="User 2"></nz-tab>
+    </nz-tabs>
+  </div>
+  <div class="tab-container-container">
+    TEST
+  </div>
+</div>
