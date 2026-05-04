@@ -8,6 +8,9 @@ function registerPokiHelperIpc() {
   ipcMain.handle('poki-helper:move-mouse', (_e, x, y) => helper.moveMouse(x, y));
   ipcMain.handle('poki-helper:get-mouse-position', () => helper.getMousePosition());
   ipcMain.handle('poki-helper:click-mouse', (_e, button) => helper.clickMouse(button));
+  ipcMain.handle('poki-helper:move-mouse-then-click', (_e, x, y, button) =>
+    helper.moveMouseThenClick(x, y, button),
+  );
   ipcMain.handle('poki-helper:double-click-mouse', (_e, button) => helper.doubleClickMouse(button));
   ipcMain.handle('poki-helper:scroll-mouse-vertical', (_e, amount) =>
     helper.scrollMouseVertical(amount),

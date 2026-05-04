@@ -34,23 +34,70 @@ function resolveKey(keyName) {
 }
 
 /**
- * Move the system cursor to absolute screen coordinates (pixels).
+ * Chromium / overlay mouse `screenX` / `screenY` are device-independent (DIP) on Windows.
+ * nut-js uses physical screen pixels for `setPosition`. Convert when Electron exposes it.
+ * @param {number} x
+ * @param {number} y
+ * @returns {{ x: number, y: number }}
+ */
+function dipToPhysicalScreenPoint(x, y) {
+  const rx = Math.round(Number(x));
+  const ry = Math.round(Number(y));
+  try {
+    const { screen } = require('electron');
+    if (screen && typeof screen.dipToScreenPoint === 'function') {
+      const p = screen.dipToScreenPoint({ x: rx, y: ry });
+      return { x: Math.round(p.x), y: Math.round(p.y) };
+    }
+  } catch {
+    /* helper loaded outside Electron main */
+  }
+  return { x: rx, y: ry };
+}
+
+/**
+ * @param {number} x
+ * @param {number} y
+ * @returns {{ x: number, y: number }}
+ */
+function physicalToDipScreenPoint(x, y) {
+  const rx = Math.round(Number(x));
+  const ry = Math.round(Number(y));
+  try {
+    const { screen } = require('electron');
+    if (screen && typeof screen.screenToDipPoint === 'function') {
+      const p = screen.screenToDipPoint({ x: rx, y: ry });
+      return { x: Math.round(p.x), y: Math.round(p.y) };
+    }
+  } catch {
+    /* helper loaded outside Electron main */
+  }
+  return { x: rx, y: ry };
+}
+
+/**
+ * Move the system cursor. `x` / `y` use the same space as Chromium `screenX` / `screenY`
+ * (DIP on scaled Windows monitors); they are converted for nut-js when needed.
  * @param {number} x
  * @param {number} y
  * @returns {Promise<void>}
  */
 async function moveMouse(x, y) {
-  const px = clampInt(x, MOUSE_MIN, MOUSE_MAX);
-  const py = clampInt(y, MOUSE_MIN, MOUSE_MAX);
-  await mouse.setPosition(new Point(px, py));
+  const dpx = clampInt(x, MOUSE_MIN, MOUSE_MAX);
+  const dpy = clampInt(y, MOUSE_MIN, MOUSE_MAX);
+  const phys = dipToPhysicalScreenPoint(dpx, dpy);
+  await mouse.setPosition(
+    new Point(clampInt(phys.x, MOUSE_MIN, MOUSE_MAX), clampInt(phys.y, MOUSE_MIN, MOUSE_MAX)),
+  );
 }
 
 /**
- * @returns {Promise<{ x: number; y: number }>}
+ * @returns {Promise<{ x: number; y: number }>} DIP screen coordinates (matches overlay / `screenX`/`screenY`).
  */
 async function getMousePosition() {
   const p = await mouse.getPosition();
-  return { x: p.x, y: p.y };
+  const dip = physicalToDipScreenPoint(p.x, p.y);
+  return { x: dip.x, y: dip.y };
 }
 
 /**
@@ -59,6 +106,19 @@ async function getMousePosition() {
  */
 async function clickMouse(button = 'left') {
   await mouse.click(resolveMouseButton(button));
+}
+
+/**
+ * Move to screen coordinates, wait 100 ms, then click the given button.
+ * @param {number} x
+ * @param {number} y
+ * @param {'left'|'right'|'middle'} [button='left']
+ * @returns {Promise<void>}
+ */
+async function moveMouseThenClick(x, y, button = 'left') {
+  await moveMouse(x, y);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await clickMouse(button);
 }
 
 /**
@@ -127,6 +187,7 @@ module.exports = {
   moveMouse,
   getMousePosition,
   clickMouse,
+  moveMouseThenClick,
   doubleClickMouse,
   scrollMouseVertical,
   typeText,

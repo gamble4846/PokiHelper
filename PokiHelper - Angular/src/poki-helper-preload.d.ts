@@ -21,6 +21,12 @@ export interface PokiHelperPreload {
   moveMouse(x: number, y: number): Promise<void>;
   getMousePosition(): Promise<{ x: number; y: number }>;
   clickMouse(button?: 'left' | 'right' | 'middle'): Promise<void>;
+  /** Moves to `(x, y)`, waits 100 ms, then clicks with `button` (default left). */
+  moveMouseThenClick(
+    x: number,
+    y: number,
+    button?: 'left' | 'right' | 'middle',
+  ): Promise<void>;
   doubleClickMouse(button?: 'left' | 'right' | 'middle'): Promise<void>;
   scrollMouseVertical(amount: number): Promise<void>;
   typeText(text: string): Promise<void>;

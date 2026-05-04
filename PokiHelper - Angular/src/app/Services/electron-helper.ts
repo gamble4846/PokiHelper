@@ -44,6 +44,17 @@ export class ElectronHelper {
     return this.api().clickMouse(button);
   }
 
+  /**
+   * Moves the cursor to screen `(x, y)`, waits 100 ms, then clicks with `button` (default left).
+   */
+  moveMouseThenClick(
+    x: number,
+    y: number,
+    button?: 'left' | 'right' | 'middle',
+  ): Promise<void> {
+    return this.api().moveMouseThenClick(x, y, button);
+  }
+
   doubleClickMouse(button?: 'left' | 'right' | 'middle'): Promise<void> {
     return this.api().doubleClickMouse(button);
   }
