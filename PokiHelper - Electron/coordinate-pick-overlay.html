@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pick coordinates</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        cursor: crosshair;
+        user-select: none;
+        font-family: system-ui, 'Segoe UI', sans-serif;
+      }
+      .shade {
+        position: absolute;
+        inset: 0;
+        background: rgba(22, 22, 28, 0.48);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .hint {
+        pointer-events: none;
+        color: #f4f4f5;
+        font-size: 1.05rem;
+        text-align: center;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
+        padding: 1rem 1.35rem;
+        background: rgba(0, 0, 0, 0.38);
+        border-radius: 10px;
+        max-width: min(28rem, 92vw);
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shade" id="shade">
+      <p class="hint">
+        Click anywhere to capture screen coordinates.<br />
+        Cursor is crosshair (+). Press <strong>Esc</strong> to cancel.
+      </p>
+    </div>
+    <script>
+      (function () {
+        function logicalButton(ev) {
+          if (ev.button === 0) return 'left';
+          if (ev.button === 2) return 'right';
+          return 'middle';
+        }
+        var shade = document.getElementById('shade');
+        shade.addEventListener('mousedown', function (ev) {
+          window.coordinatePick.submit({
+            x: ev.screenX,
+            y: ev.screenY,
+            button: logicalButton(ev),
+          });
+        });
+        document.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Escape') {
+            window.coordinatePick.cancel();
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

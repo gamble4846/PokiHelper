@@ -13,4 +13,6 @@ Any new or changed automation API exposed to the Angular app must be updated **t
 4. **`PokiHelper - Angular/src/poki-helper-preload.d.ts`** — extend `PokiHelperPreload` (and `Window`) typings.
 5. **`PokiHelper - Angular/src/app/Services/electron-helper.ts`** — add delegating method(s) on `ElectronHelper` that call `this.api().…` (mirror every exported helper function).
 
+Coordinate pick (`waitForNextClickCoordinates`) is implemented in **`PokiHelper - Electron/coordinate-pick-overlay.js`** (+ `coordinate-pick-overlay.html`, `coordinate-pick-preload.js`) and wired from `main.js` / `preload.js` / typings / `ElectronHelper` — not in `helper.js`.
+
 Do not add a helper only in Angular or only in Electron: **always** keep `helper.js` and `electron-helper.ts` (plus preload, IPC, and d.ts) aligned. Use consistent IPC channel names: `poki-helper:<kebab-action>`.

@@ -1,5 +1,9 @@
 import { Injectable } from '@angular/core';
-import type { PokiHelperPreload } from '../../poki-helper-preload';
+import type {
+  ClickCoordinatesResult,
+  PokiHelperPreload,
+  WaitForNextClickCoordinatesOptions,
+} from '../../poki-helper-preload';
 
 /**
  * Angular façade for main-process automation in `PokiHelper - Electron/helper.js`
@@ -58,5 +62,21 @@ export class ElectronHelper {
 
   keyChord(modifierKeyNames: string[], keyName: string): Promise<void> {
     return this.api().keyChord(modifierKeyNames, keyName);
+  }
+
+  /**
+   * Picks screen coordinates: opens a dim full-screen overlay (all monitors) with a crosshair (+) cursor,
+   * then resolves with the click position (`screenX` / `screenY`). Esc cancels. Optional `button` filters
+   * which button completes the wait (default left). Use `cancelWaitForNextClickCoordinates` to abort.
+   */
+  waitForNextClickCoordinates(
+    options?: WaitForNextClickCoordinatesOptions,
+  ): Promise<ClickCoordinatesResult> {
+    return this.api().waitForNextClickCoordinates(options ?? {});
+  }
+
+  /** Cancels an in-flight {@link waitForNextClickCoordinates}. */
+  cancelWaitForNextClickCoordinates(): Promise<boolean> {
+    return this.api().cancelWaitForNextClickCoordinates();
   }
 }

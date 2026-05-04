@@ -12,10 +12,14 @@ export class TradeHelper {
 
   constructor(private electronHelper: ElectronHelper){}
 
-  async TypeHello(){
-    setTimeout(async () => {
-      this.electronHelper.typeText('Hello');
-    }, 1000);
+  PrintedCords: string= "";
+
+  async GetCords(){
+    const pos = await this.electronHelper.waitForNextClickCoordinates({
+      timeoutMs: 60_000,
+      button: 'left',
+    });
+    this.PrintedCords = `X: ${pos.x}, Y: ${pos.y}`;
   }
 }
 

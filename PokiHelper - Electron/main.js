@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const helper = require('./helper');
+const coordinatePickOverlay = require('./coordinate-pick-overlay');
 
 function registerPokiHelperIpc() {
   ipcMain.handle('poki-helper:move-mouse', (_e, x, y) => helper.moveMouse(x, y));
@@ -15,6 +16,12 @@ function registerPokiHelperIpc() {
   ipcMain.handle('poki-helper:key-tap', (_e, keyName) => helper.keyTap(keyName));
   ipcMain.handle('poki-helper:key-chord', (_e, modifierKeyNames, keyName) =>
     helper.keyChord(modifierKeyNames, keyName),
+  );
+  ipcMain.handle('poki-helper:wait-next-click-coordinates', (_e, opts) =>
+    coordinatePickOverlay.startPick(opts ?? {}),
+  );
+  ipcMain.handle('poki-helper:cancel-wait-next-click-coordinates', () =>
+    coordinatePickOverlay.cancelPick(),
   );
 }
 
@@ -60,4 +67,8 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('will-quit', () => {
+  coordinatePickOverlay.dispose();
 });
